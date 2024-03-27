@@ -1,0 +1,58 @@
+--------association rules---------------
+
+
+#!/usr/bin/env python3
+
+import sys
+from itertools import combinations
+
+# Initialize dictionaries to store counts
+pair_counts = {}
+item_counts = {}
+
+# Read input and aggregate counts
+for line in sys.stdin:
+    pair, count = line.strip().split('\t')
+    pair_counts[pair] = pair_counts.get(pair, 0) + int(count)
+    items = pair.split()
+    for item in items:
+        item_counts[item] = item_counts.get(item, 0) + int(count)
+
+# Output association rules with support, confidence, and interest
+for pair, count in pair_counts.items():
+    items = pair.split()
+    if len(items) != 2:
+        continue
+    item1, item2 = items
+    # Calculate support, confidence, and interest
+    support = count
+    confidence = count / item_counts[item1]
+    expected_support = (item_counts[item1] / sum(item_counts.values())) * (item_counts[item2] / sum(item_counts.values()))
+    interest = support - expected_support
+    # Print the association rule along with metrics
+    print(f"{item1} => {item2}\tSupport: {support}\tConfidence: {confidence}\tInterest: {interest}")
+
+
+
+
+
+
+
+
+#!/usr/bin/env python3
+
+import sys
+from itertools import combinations
+
+# Read input
+for line in sys.stdin:
+    items = line.strip().split()
+    
+    # Generate pairs
+    pairs = combinations(items, 2)
+
+    # Output pairs with count of 1
+    for pair in pairs:
+        print(f"{pair[0]} {pair[1]}\t1")
+
+
