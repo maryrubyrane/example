@@ -1,0 +1,66 @@
+#!/usr/bin/env python3
+
+import sys
+
+def reducer():
+
+    # Input comes from STDIN
+    
+    for line in sys.stdin:
+        # Parse the input from file
+        node_id, pagerank, neighbors = line.strip().split('\t')
+        pagerank = float(pagerank)
+        if(neighbors!='0'):
+            neighbors = neighbors.strip().split(',')  # Convert string representation to a list
+        else:
+            neighbors=['0']
+        
+        print(f"{node_id}\t{pagerank}\t{','.join(neighbors)}")
+            
+
+if _name_ == "_main_":
+    reducer()
+
+
+
+
+
+
+
+
+
+#!/usr/bin/env python3
+
+import sys
+
+def incomings(data,node):
+    incoming_nodes=[]
+    for key,values in data.items():
+        if node in values[1]:
+            incoming_nodes.append(key)
+            
+    return incoming_nodes
+        
+
+def reducer():
+    data={}
+
+    # Input comes from STDIN
+    for line in sys.stdin:
+        # Parse the input from mapper
+        node_id, pagerank, neighbors = line.strip().split('\t')
+        pagerank = float(pagerank)
+        neighbors = neighbors.strip().split(',')  # Convert string representation to a list 
+        
+        data[node_id]=[pagerank,neighbors]
+        
+    for node,values in data.items():
+        rank=0.0
+        incoming_nodes=incomings(data,node)
+        for i in incoming_nodes:
+    	    rank+=data[i][0]/len(data[i][1])        
+        
+        print(f"{node}\t{rank}\t{','.join(values[1])}")
+
+if _name_ == "_main_":
+    reducer()
