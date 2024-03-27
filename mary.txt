@@ -1,0 +1,351 @@
+--------------------------------------													
+Compute frequency of items individually
+--------------------------------------													
+
+//Mapper.py
+#!/usr/bin/env python3
+
+import sys
+
+def generate_subsets(items):
+    subsets = []
+    for i in range(len(items)):
+        for subset in itertools.combinations(items, i+1):
+            subsets.append(subset)
+    return subsets
+
+min_support = 3
+
+# Initialize item count dictionary
+item_counts = {}
+
+# Read input and count occurrences of each item
+for line in sys.stdin:
+    items = line.strip().split()
+    for item in items:
+        item_counts[item] = item_counts.get(item, 0) + 1
+
+# Output frequent itemsets above minimum support threshold
+for item, count in item_counts.items():
+    if count >= min_support:
+        print(f"{item}\t{count}")
+
+
+//reducer.py
+import sys
+
+# Initialize item count dictionary
+item_counts = {}
+
+# Read input and aggregate counts
+for line in sys.stdin:
+    item, count = line.strip().split('\t')
+    item_counts[item] = item_counts.get(item, 0) + int(count)
+
+# Output frequent itemsets above minimum support threshold
+for item, count in item_counts.items():
+    print(f"{item}\t{count}")
+
+--------------------------------													
+association rules and support
+-------------------------------
+													
+//mapper.py
+#!/usr/bin/env python3
+
+import sys
+import itertools
+
+# Initialize item count dictionary
+itemset_counts = {}
+# Read input and count occurrences of each itemset
+for line in sys.stdin:
+    itemset, count = line.strip().split('\t')
+    itemset_counts[itemset] = int(count)
+
+# Output all possible subsets of each itemset
+for itemset, count in itemset_counts.items():
+    items = itemset.split()
+    for i in range(1, len(items)):
+        for subset in itertools.combinations(items, i):
+            remaining_items = set(items) - set(subset)
+            remaining_items_str = ' '.join(sorted(list(remaining_items)))
+            print(f"{', '.join(sorted(list(subset)))} => {remaining_items_str}\t{count}")
+
+//reducer.py
+#!/usr/bin/env python3
+
+import sys
+
+# Initialize itemset count dictionary
+itemset_counts = {}
+
+# Read input and aggregate counts
+for line in sys.stdin:
+    rule, count = line.strip().split('\t')
+    itemset_counts[rule] = itemset_counts.get(rule, 0) + int(count)
+
+# Output association rules with support
+for rule, count in itemset_counts.items():
+    print(f"{rule}\t{count}")
+	
+-------------------------------------------------------------------------------------------------------------											
+You must show the words that occurred in more than one sentence. Also show in which sentence they have occurred
+-------------------------------------------------------------------------------------------------------------												
+
+//mapper.py
+import sys
+
+def map_words(line):
+    # Split the line into sentences
+    sentences = line.strip().split('. ')
+    
+    # Emit each word with the sentence number it occurs in
+    for i, sentence in enumerate(sentences, start=1):
+        words = sentence.lower().split()
+        for word in words:
+            # Removing punctuation marks from the word
+            word = ''.join(filter(str.isalnum, word))
+            if word:
+                print(f"{word}\t{i}")
+
+if __name__ == '__main__':
+    for line in sys.stdin:
+        map_words(line)
+
+
+//reducer.py
+import sys
+
+def reduce_words():
+    word_sentence_map = {}
+    
+    for line in sys.stdin:
+        word, sentence = line.strip().split('\t')
+        word_sentence_map.setdefault(word, []).append(sentence)
+
+    # Iterate over the words and find the ones occurring in more than one sentence
+    for word, sentences in word_sentence_map.items():
+        if len(set(sentences)) > 1:
+            print(f"Word: {word}, Sentences: {', '.join(sentences)}")
+
+if __name__ == '__main__':
+    reduce_words()
+
+---------------------------------------------------------------													
+similarity between documents
+----------------------------------------------------------------													
+import numpy as np
+
+# Define the sets of shingles
+set1 = {"apple", "banana", "orange", "kiwi", "grape"}
+set2 = {"apple", "banana", "mango", "kiwi", "pineapple"}
+set3 = {"apple", "banana", "orange", "grape", "watermelon"}
+
+# Encode each shingle as a binary array representation
+def encode_shingle(shingle):
+    binary_array = []
+    for letter in "abcdefghijklmnopqrstuvwxyz":
+        binary_array.append(int(letter in shingle))
+    return np.array(binary_array)
+
+# Define hash functions
+def H1(binary_array):
+    return np.sum(binary_array[:3]) % 3
+
+def H2(binary_array):
+    index = np.where(np.flip(binary_array) == 1)[0][-2] # Second last index where value is 1
+    return index
+
+def H3(binary_array):
+    return np.min(binary_array)
+
+# Generate signatures for each set using hash functions
+def generate_signature(s):
+    signature = []
+    for hash_function in [H1, H2, H3]:
+        hash_values = [hash_function(encode_shingle(shingle)) for shingle in s]
+        signature.append(hash_values)
+    return signature
+
+signature1 = generate_signature(set1)
+signature2 = generate_signature(set2)
+signature3 = generate_signature(set3)
+
+# Calculate similarity between sets using the given formula
+def calculate_similarity(sig1, sig2):
+    intersection = len(set(sig1[-1]) & set(sig2[-1]))
+    union = len(set(sig1[0]) | set(sig2[0]))
+    return intersection / union
+
+similarity_set1_set2 = calculate_similarity(signature1, signature2)
+similarity_set1_set3 = calculate_similarity(signature1, signature3)
+similarity_set2_set3 = calculate_similarity(signature2, signature3)
+
+print("Signature for Set 1:", signature1)
+print("Signature for Set 2:", signature2)
+print("Signature for Set 3:", signature3)
+print("Similarity between Set 1 and Set 2:", similarity_set1_set2)
+print("Similarity between Set 1 and Set 3:", similarity_set1_set3)
+print("Similarity between Set 2 and Set 3:", similarity_set2_set3)
+
+
+--------------------------------------													
+lsh
+--------------------------------------													
+# Step 3: Create shingles
+def create_shingles(sentence, k=2):
+    shingles = set()
+    words = sentence.split()
+    for i in range(len(words) - k + 1):
+        shingle = ' '.join(words[i:i + k])
+        shingles.add(shingle)
+    return shingles
+
+shingle_size = 2
+sentence_shingles = []
+for sentence in sentences:
+    new=create_shingles(sentence, k=shingle_size)
+    sentence_shingles.append(new)
+
+sentence_shingles
+
+"""# Min-hash"""
+
+# Step 4: Create vocabulary
+vocabulary = set()
+for shingles in sentence_shingles:
+    vocabulary.update(shingles)
+vocabulary = list(vocabulary)
+def one_hot_encoding(shingle, vocabulary):
+    encoding = np.zeros(len(vocabulary))
+    for sh in shingle:
+        if sh in vocabulary:
+            encoding[list(vocabulary).index(sh)]=1
+    return encoding
+
+encodings = []
+for shingle in sentence_shingles:
+    encoding = one_hot_encoding(shingle, vocabulary)
+    encodings.append(encoding)
+encodings
+
+def minhash_signature(encoding, num_hashes,hash_coefficients):
+    signatures = []
+    for hash_coeffs in hash_coefficients:
+        min_hash = float('inf')
+        for index,coeff in enumerate(hash_coeffs):
+            if encoding[index]==1:
+                hash_code = coeff
+                if hash_code < min_hash:
+                    min_hash = hash_code
+        signatures.append(min_hash)
+    return signatures
+
+num_hashes = 12
+signatures=[]
+hash_coeffs=[]
+for i in range(num_hashes):
+    hash_coeffs.append(np.array(random.sample(range(1, len(encodings[0]) + 1), len(encodings[0]))))
+for enc in encodings:
+    signature = minhash_signature(enc, num_hashes,hash_coeffs)
+    signatures.append(signature)
+print(signatures)
+print('----------------')
+
+def jaccard_similarity(set1, set2):
+    set1 = set(set1)
+    set2 = set(set2)
+    intersection = len(set1.intersection(set2))
+    union = len(set1.union(set2))
+    return intersection / union if union != 0 else 0
+
+"""# LSH"""
+
+def lsh_buckets(signatures, b, r):
+    buckets = {}
+    for i, sig in enumerate(signatures):
+        for j in range(0, len(sig), r):
+            band = tuple(sig[j:j + r])
+            band_str = str(band)
+            if band_str in buckets:
+                for bucket_index in buckets[band_str]:
+                    bucket_sig = signatures[bucket_index]  # Get the signature from signatures list
+                    similarity = jaccard_similarity(sig, bucket_sig)
+                    if similarity > 0.3:
+                        buckets[band_str].append(i)  # Append the index 'i' to the bucket
+                        break
+                else:
+                    buckets[band_str].append(i)
+            else:
+                buckets[band_str] = [i]  # Create a new bucket with the index 'i'
+
+    return buckets
+
+b = 6
+r = num_hashes // b
+buckets = lsh_buckets(signatures, b, r)
+
+# Print bands and their corresponding buckets
+for band_str, indices in buckets.items():
+    print(f"Bucket for Band {band_str}: {indices}")
+
+# Step 7: Find candidate pairs and calculate Jaccard similarity
+
+def find_similar_sentences(sentences, buckets, threshold=0.5):
+    similar_pairs = set()
+    for bucket in buckets.values():
+        if len(bucket) > 1:
+            for i in range(len(bucket)):
+                for j in range(i + 1, len(bucket)):
+                    idx1, idx2 = bucket[i], bucket[j]
+                    sim = jaccard_similarity(sentences[idx1], sentences[idx2])
+                    if sim >= threshold:
+                        if idx1==idx2:
+                            continue
+                        similar_pairs.add((min(idx1, idx2), max(idx1, idx2)))
+    return similar_pairs
+
+threshold = 0.1
+similar_pairs = find_similar_sentences(signatures, buckets, threshold)
+
+for pair in similar_pairs:
+    print(f"Similarity between sentences {pair}: {jaccard_similarity(signatures[pair[0]], signatures[pair[1]])}")
+
+
+
+----------------------------------------------------
+square of numbers
+-------------------------------------------------
+//mapper.py
+import sys
+
+def map_values(line):
+    values = line.strip().split(',')
+    for value in values:
+        value = int(value)
+        yield (value, value ** 2)
+
+if __name__ == "__main__":
+    for line in sys.stdin:
+        for key, value in map_values(line):
+            print(f"{key}\t{value}")
+
+
+//reducer.py
+import sys
+
+def reduce_values():
+    data = {}
+    for line in sys.stdin:
+        key, value = line.strip().split('\t')
+        key = int(key)
+        value = int(value)
+        if value in data:
+            print(f"{key} {value}")
+        else:
+            data[value] = key
+
+if __name__ == "__main__":
+    reduce_values()
+
