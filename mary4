@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+
+import sys
+
+def create_google_matrix(matrix):
+    google_matrix = {}
+    alpha = 0.85  # Damping factor
+
+    for node in matrix:
+        pagerank, neighbors = matrix[node]
+        num_neighbors = len(neighbors)
+
+        # Calculate the self-contribution
+        self_contribution = pagerank / (num_neighbors + 1)
+
+        # Calculate the normalized contribution to neighbors
+        neighbor_contribution = alpha * pagerank / (num_neighbors + 1)
+
+        # Update the Google matrix
+        google_matrix[node] = (self_contribution, neighbor_contribution, neighbors)
+
+    return google_matrix
+
+def reducer():
+    matrix = {}
+    contributions = {}
+
+    # Input comes from STDIN
+    for line in sys.stdin:
+        # Parse the input from the mapper
+        node_id, pagerank, neighbors = line.strip().split('\t')
+        pagerank = float(pagerank)
+        neighbors = neighbors.strip().split(',')  # Convert string representation to a list
+
+        matrix[node_id] = (pagerank, neighbors)
+
+        if neighbors != ['0']:
+            # Use a more nuanced contribution mechanism
+            contribution = pagerank / (len(neighbors) + 1)  # Include self-contribution
+            for neighbor in neighbors:
+                contributions.setdefault(neighbor, []).append(contribution)
+
+    # Perform matrix-vector multiplication using the Google matrix
+    google_matrix = create_google_matrix(matrix)
+    for node in matrix:
+        pagerank, neighbors = matrix[node]
+        self_contribution, neighbor_contribution, _ = google_matrix[node]
+
+        # Calculate the new PageRank
+        new_rank = self_contribution + sum(neighbor_contribution * contributions.get(neighbor, [0])[0] for neighbor in neighbors)
+
+        # Print the new PageRank
+        print(f"{node}\t{new_rank}\t{','.join(neighbors)}")
+
+if __name__ == "__main__":
+    reducer()
